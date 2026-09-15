@@ -1,0 +1,47 @@
+{
+  "seed": 1337,
+  "device": "auto",
+  "output_dir": "runs/dual_bimamba_guided_no_aux_seed1337",
+  "data": {
+    "train": "data/processed/core_corpus/train.jsonl",
+    "validation": "data/processed/core_corpus/validation.jsonl"
+  },
+  "model": {
+    "architecture": "dual_bimamba",
+    "backend": "mamba1",
+    "d_model": 128,
+    "num_layers": 4,
+    "dropout": 0.1,
+    "d_state": 64,
+    "d_conv": 4,
+    "expand": 2,
+    "headdim": 32,
+    "transformer_heads": 4,
+    "transformer_ffn": 512,
+    "max_length": 4096,
+    "local_kernel_size": 7,
+    "fusion_mode": "learned",
+    "predict_semantics": true
+  },
+  "training": {
+    "epochs": 30,
+    "batch_size": 32,
+    "eval_batch_size": 32,
+    "learning_rate": 0.0003,
+    "weight_decay": 0.01,
+    "gradient_clip": 1.0,
+    "gradient_accumulation": 1,
+    "workers": 4,
+    "amp": true,
+    "threshold": 0.5,
+    "threshold_grid": [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9],
+    "patience": 8
+  },
+  "loss": {
+    "boundary_positive_weight": 8.0,
+    "role_weight": 0.0,
+    "type_weight": 0.0,
+    "gate_weight": 0.05
+  }
+}
+

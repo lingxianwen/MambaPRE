@@ -1,0 +1,5 @@
+numpy>=1.24
+torch>=2.2
+# Install the CUDA-matched mamba-ssm and causal-conv1d wheels on the GPU server.
+# See README.md; the local reference backend is only intended for smoke tests.
+

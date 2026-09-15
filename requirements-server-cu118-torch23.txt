@@ -1,0 +1,6 @@
+# Exact versions validated on RTX A6000, driver 520.61.05, Torch 2.3.0+cu118.
+# Prefer the matching official release wheels described in docs/server_setup.md.
+causal-conv1d==1.4.0
+mamba-ssm==2.2.2
+pytest>=8
+

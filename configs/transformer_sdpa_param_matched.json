@@ -1,0 +1,19 @@
+{
+  "model": {
+    "architecture": "transformer",
+    "backend": "reference",
+    "d_model": 176,
+    "num_layers": 4,
+    "dropout": 0.1,
+    "d_state": 64,
+    "d_conv": 4,
+    "expand": 2,
+    "headdim": 32,
+    "transformer_heads": 4,
+    "transformer_ffn": 652,
+    "max_length": 4096,
+    "local_kernel_size": 7,
+    "fusion_mode": "learned",
+    "predict_semantics": true
+  }
+}
