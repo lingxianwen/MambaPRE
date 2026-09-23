@@ -14,10 +14,13 @@ inference. Unguided and fixed-fusion variants remain explicit controls; the
 released results do not establish that learned routing is necessary or that
 the model recovers distant dependencies.
 
-The repository also contains parameter-matched Transformer and supervised
-dilated-CNN controls, plus unidirectional Mamba and plain BiMamba ablations.
-The CNN uses the common byte-level data, semantic heads, and training protocol;
-its five-seed runner is `scripts/run_cnn_seed_pipeline.sh`.
+The repository also contains parameter-matched Transformer, supervised
+dilated-CNN, and packed bidirectional recurrent controls, plus unidirectional
+Mamba and plain BiMamba ablations. The four-layer BiGRU configuration has
+2,191,922 parameters versus 2,191,502 for Mamba-PRE and uses the same byte
+embeddings, semantic heads, training data, optimization, and threshold policy.
+Its five-seed runner is `scripts/run_bigru_seed_pipeline.sh`; the CNN runner is
+`scripts/run_cnn_seed_pipeline.sh`.
 
 The default server backend is the original official Mamba selective-scan CUDA
 kernel. Mamba-2 remains available as `backend=mamba2`; its `headdim=32` keeps a
@@ -135,6 +138,24 @@ The first frozen-threshold diagnostics are in
 [`docs/neupre_first_results.md`](docs/neupre_first_results.md). The completed
 five-seed controlled comparison is in
 [`docs/multiseed_results.md`](docs/multiseed_results.md).
+
+## Deep-boundary and offset diagnostics
+
+The strict FINS and public OPC UA diagnostics contain fully dissected messages
+with boundaries beyond the header region. Run the parameter-matched recurrent
+control for one seed with:
+
+```bash
+bash scripts/run_bigru_seed_pipeline.sh 1337 0
+```
+
+`scripts/evaluate_offset_bins.py` reports micro precision, recall, and F1 in
+the fixed offset bins 1--32, 33--128, 129--256, 257--512, and 513+. Aggregate
+five seeds with `scripts/aggregate_offset_bins.py`; generate the publication
+plot with `scripts/plot_offset_f1.py`. The compact plotted values are released
+as [`figures/Fig3_offset_f1.csv`](figures/Fig3_offset_f1.csv). These tests are
+at most 620 bytes, below the 1,028-byte training maximum, and therefore diagnose
+deep-offset transfer rather than unseen absolute-position indices.
 
 ## Scaling benchmark
 

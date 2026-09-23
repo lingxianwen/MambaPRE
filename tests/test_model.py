@@ -16,7 +16,9 @@ def test_reverse_valid_keeps_padding_at_end():
 def test_all_architectures_shape_with_reference_backend():
     bytes_ = torch.tensor([[1, 2, 3, 4, 256], [5, 6, 7, 256, 256]])
     mask = bytes_ != 256
-    for architecture in ("transformer", "cnn", "mamba", "bimamba", "dual_bimamba"):
+    for architecture in (
+        "transformer", "cnn", "bigru", "bilstm", "mamba", "bimamba", "dual_bimamba"
+    ):
         model = build_model(
             ModelConfig(
                 architecture=architecture,
@@ -26,6 +28,7 @@ def test_all_architectures_shape_with_reference_backend():
                 d_state=8,
                 transformer_heads=4,
                 transformer_ffn=32,
+                rnn_hidden_size=8,
                 max_length=16,
             )
         )
@@ -35,6 +38,22 @@ def test_all_architectures_shape_with_reference_backend():
         assert output["type_logits"].shape == (2, 5, 5)
         if architecture == "dual_bimamba":
             assert output["spatial_gates"].shape == (2, 1, 5, 16)
+
+
+def test_parameter_matched_bigru_budget():
+    model = build_model(
+        ModelConfig(
+            architecture="bigru",
+            backend="reference",
+            d_model=197,
+            rnn_hidden_size=136,
+            num_layers=4,
+            max_length=4096,
+        )
+    )
+    parameters = sum(parameter.numel() for parameter in model.parameters())
+    assert parameters == 2_191_922
+    assert abs(parameters - 2_191_502) / 2_191_502 < 0.001
 
 
 def test_fixed_fusion_gate_is_half():

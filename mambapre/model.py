@@ -22,6 +22,7 @@ class ModelConfig:
     headdim: int = 32
     transformer_heads: int = 4
     transformer_ffn: int = 512
+    rnn_hidden_size: int = 128
     max_length: int = 2048
     local_kernel_size: int = 7
     fusion_mode: str = "learned"
@@ -280,6 +281,48 @@ class CNNBackbone(nn.Module):
         return x, None
 
 
+class BidirectionalRNNBackbone(nn.Module):
+    """Packed bidirectional recurrent control for dense byte tagging.
+
+    Packing ensures that the backward state of a shorter message never sees
+    batch padding.  A projection maps the concatenated directional states back
+    to ``d_model`` so all prediction heads and supervision remain unchanged.
+    """
+
+    def __init__(self, config: ModelConfig, cell: str) -> None:
+        super().__init__()
+        if cell not in {"gru", "lstm"}:
+            raise ValueError(f"unknown recurrent cell: {cell}")
+        recurrent = nn.GRU if cell == "gru" else nn.LSTM
+        self.encoder = recurrent(
+            input_size=config.d_model,
+            hidden_size=config.rnn_hidden_size,
+            num_layers=config.num_layers,
+            dropout=config.dropout if config.num_layers > 1 else 0.0,
+            bidirectional=True,
+            batch_first=True,
+        )
+        output_size = 2 * config.rnn_hidden_size
+        self.projection = (
+            nn.Identity()
+            if output_size == config.d_model
+            else nn.Linear(output_size, config.d_model)
+        )
+        self.output_norm = nn.LayerNorm(config.d_model)
+
+    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, None]:
+        lengths = mask.sum(dim=1).clamp_min(1).to(device="cpu", dtype=torch.long)
+        packed = nn.utils.rnn.pack_padded_sequence(
+            x, lengths, batch_first=True, enforce_sorted=False
+        )
+        encoded, _ = self.encoder(packed)
+        encoded, _ = nn.utils.rnn.pad_packed_sequence(
+            encoded, batch_first=True, total_length=x.shape[1]
+        )
+        encoded = self.output_norm(self.projection(encoded))
+        return encoded * mask[:, :, None], None
+
+
 class MambaBackbone(nn.Module):
     def __init__(self, config: ModelConfig, bidirectional: bool) -> None:
         super().__init__()
@@ -322,6 +365,10 @@ class ProtocolBoundaryModel(nn.Module):
             self.backbone = TransformerBackbone(config)
         elif config.architecture == "cnn":
             self.backbone = CNNBackbone(config)
+        elif config.architecture == "bigru":
+            self.backbone = BidirectionalRNNBackbone(config, cell="gru")
+        elif config.architecture == "bilstm":
+            self.backbone = BidirectionalRNNBackbone(config, cell="lstm")
         elif config.architecture == "mamba":
             self.backbone = MambaBackbone(config, bidirectional=False)
         elif config.architecture == "bimamba":
